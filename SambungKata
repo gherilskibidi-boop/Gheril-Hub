@@ -1,0 +1,129 @@
+--// GHERIL HUB STABLE
+--// Made by gheril.xyz
+
+local player = game.Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Parent = PlayerGui
+
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0,350,0,300)
+Main.Position = UDim2.new(0.5,-175,0.5,-150)
+Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+
+Instance.new("UICorner", Main)
+
+-- TITLE
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1,0,0,40)
+Title.Text = "GHERIL HUB"
+Title.TextColor3 = Color3.fromRGB(0,200,255)
+Title.BackgroundTransparency = 1
+
+-- DISPLAY HURUF
+local HurufDisplay = Instance.new("TextLabel", Main)
+HurufDisplay.Position = UDim2.new(0.1,0,0.2,0)
+HurufDisplay.Size = UDim2.new(0.8,0,0,30)
+HurufDisplay.Text = "Huruf: (menunggu...)"
+HurufDisplay.TextColor3 = Color3.new(1,1,1)
+HurufDisplay.BackgroundTransparency = 1
+
+-- OUTPUT
+local Output = Instance.new("TextLabel", Main)
+Output.Position = UDim2.new(0.1,0,0.35,0)
+Output.Size = UDim2.new(0.8,0,0,70)
+Output.TextWrapped = true
+Output.Text = "-"
+Output.TextColor3 = Color3.fromRGB(200,200,200)
+Output.BackgroundTransparency = 1
+
+-- INPUT MANUAL HURUF
+local ManualHuruf = Instance.new("TextBox", Main)
+ManualHuruf.Position = UDim2.new(0.1,0,0.55,0)
+ManualHuruf.Size = UDim2.new(0.8,0,0,30)
+ManualHuruf.PlaceholderText = "Atau ketik huruf manual..."
+
+-- INPUT TAMBAH
+local HurufBox = Instance.new("TextBox", Main)
+HurufBox.Position = UDim2.new(0.1,0,0.7,0)
+HurufBox.Size = UDim2.new(0.35,0,0,30)
+HurufBox.PlaceholderText = "Huruf"
+
+local KataBox = Instance.new("TextBox", Main)
+KataBox.Position = UDim2.new(0.55,0,0.7,0)
+KataBox.Size = UDim2.new(0.35,0,0,30)
+KataBox.PlaceholderText = "Kata"
+
+local AddBtn = Instance.new("TextButton", Main)
+AddBtn.Position = UDim2.new(0.1,0,0.85,0)
+AddBtn.Size = UDim2.new(0.8,0,0,30)
+AddBtn.Text = "Tambah Kata"
+AddBtn.BackgroundColor3 = Color3.fromRGB(0,200,255)
+
+Instance.new("UICorner", AddBtn)
+
+-- DATABASE
+local kataDB = {
+    a = {"ayam","anjing","apel"},
+    b = {"bola","buku","batu"}
+}
+
+-- FUNCTION UPDATE
+local function updateOutput(huruf)
+    huruf = string.lower(huruf or "")
+    HurufDisplay.Text = "Huruf: "..huruf
+
+    if kataDB[huruf] then
+        Output.Text = table.concat(kataDB[huruf], ", ")
+    else
+        Output.Text = "Tidak ada kata"
+    end
+end
+
+-- TAMBAH KATA
+AddBtn.MouseButton1Click:Connect(function()
+    local h = string.lower(HurufBox.Text)
+    local k = string.lower(KataBox.Text)
+
+    if h ~= "" and k ~= "" then
+        kataDB[h] = kataDB[h] or {}
+
+        for _,v in pairs(kataDB[h]) do
+            if v == k then return end
+        end
+
+        table.insert(kataDB[h], k)
+        KataBox.Text = ""
+
+        updateOutput(h)
+    end
+end)
+
+-- MANUAL INPUT
+ManualHuruf.FocusLost:Connect(function()
+    updateOutput(ManualHuruf.Text)
+end)
+
+-- AUTO DETECT (AMAN, ga bakal error)
+task.spawn(function()
+    while true do
+        local found = false
+
+        -- scan semua TextLabel di game
+        for _,v in pairs(game:GetDescendants()) do
+            if v:IsA("TextLabel") and #v.Text == 1 then
+                updateOutput(v.Text)
+                found = true
+                break
+            end
+        end
+
+        if not found then
+            HurufDisplay.Text = "Huruf: (manual / belum ketemu)"
+        end
+
+        task.wait(1)
+    end
+end)
