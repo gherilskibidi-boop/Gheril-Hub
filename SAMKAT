@@ -1,0 +1,438 @@
+-- ============================================================
+--  SAMBUNG KATA - LocalScript
+--  by gheril.xyz
+--  Letakkan script ini di: StarterPlayerScripts
+-- ============================================================
+
+local Players        = game:GetService("Players")
+local TweenService   = game:GetService("TweenService")
+local RunService     = game:GetService("RunService")
+
+local player         = Players.LocalPlayer
+local playerGui      = player:WaitForChild("PlayerGui")
+
+-- ============================================================
+--  KAMUS (tambah/kurangi sesuai kebutuhan)
+-- ============================================================
+local dictionary = {
+    "ayam","makan","nasi","ikan","nanas","semangka","apel","jeruk","kelapa","kuda",
+    "domba","api","imut","udara","angin","naga","aprikot","ulat","tubuh","harimau",
+    "unta","anoa","orang","garuda","anjing","gelas","sendok","kayu","yoyo","obat",
+    "tangan","nuri","itik","kelereng","gajah","halaman","nangka","awan","noken",
+    "elang","gitar","rambutan","nektarin","minum","mamah","mangga","melon","mawar",
+    "meja","mobil","motor","matahari","mentega","musik","muda","malam","malam",
+    "buku","biru","bunga","burung","babi","badak","baju","bambu","bawang","beras",
+    "cincin","cacing","capung","cangkul","cabe","coklat","cuaca","cerita","cinta",
+    "daun","daging","dalam","darat","dapur","desa","dinding","dokter","durian",
+    "emas","ember","empat","enam","enau","engkau","ekor","elok","esok","era",
+    "foto","fajar","fibula","faham","fabel","fakir","fasad","fauna","flora",
+    "gagak","gunung","gula","garam","galon","guntur","gelap","gempa","gelombang",
+    "hujan","hutan","hijau","hitam","hijau","hidung","hewan","hidup","harga",
+    "indah","ibu","ilmu","intan","istana","irama","ikan","ijuk","iklan","izin",
+    "jambu","jalan","jarak","jarum","jawab","jiwa","jual","juri","jubah","jeli",
+    "kopi","kucing","kambing","kebun","kunci","kuliner","kulit","karet","kapas",
+    "lumpur","langit","layang","lebah","lele","lengan","lidah","logam","lotus",
+    "nanas","naga","nuri","nangka","nasi","nektarin","nyamuk","nyiur","noken",
+    "obat","ombak","otak","oven","olah","omega","orbit","opak","ondeh",
+    "perahu","pasir","padi","pantai","pasar","pisang","pohon","padi","payung",
+    "raja","rambut","rumah","rotan","rusa","ruang","ribut","rimba","radar",
+    "sabun","sawah","sungai","suara","sapi","semut","singa","sisir","salak",
+    "tanah","tikus","telur","teman","tepung","timun","tomat","tunas","topi",
+    "udang","ular","ulat","uang","upah","umbul","unsur","usia","utama","ubur",
+    "vanilla","vaksin","vapor","variasi","vasir","vigil","virus","vitamiN",
+    "wortel","warung","warna","waktu","wajah","wayang","wiski","wilis",
+    "xampu","xenon",
+    "yoyo","yakin","yoga","yatim","yakni",
+    "zebra","zaman","zakat","zona","zinnia","zat"
+}
+
+-- Normalisasi: semua lowercase, buang duplikat
+do
+    local seen = {}
+    local clean = {}
+    for _, w in ipairs(dictionary) do
+        local lw = string.lower(w)
+        if not seen[lw] then
+            seen[lw] = true
+            table.insert(clean, lw)
+        end
+    end
+    dictionary = clean
+end
+
+-- ============================================================
+--  STATE
+-- ============================================================
+local lastWord = "ayam"
+
+-- ============================================================
+--  HELPER FUNCTIONS
+-- ============================================================
+
+-- Ambil huruf terakhir dari sebuah kata
+local function getLastLetter(word)
+    if type(word) ~= "string" or #word == 0 then return "" end
+    return string.sub(word, -1)
+end
+
+-- Ambil semua kata yang diawali prefix, diurutkan A-Z
+local function getWordsByPrefix(prefix)
+    local results = {}
+    prefix = string.lower(prefix)
+    for _, word in ipairs(dictionary) do
+        if string.sub(word, 1, #prefix) == prefix then
+            table.insert(results, word)
+        end
+    end
+    table.sort(results)
+    return results
+end
+
+-- Tambah kata baru ke kamus (cek duplikat)
+local function addWord(word)
+    word = string.lower(string.gsub(word, "%s+", ""))
+    if word == "" then return false, "Kata tidak boleh kosong." end
+    for _, w in ipairs(dictionary) do
+        if w == word then return false, "Kata sudah ada di kamus." end
+    end
+    table.insert(dictionary, word)
+    return true, "Kata berhasil ditambahkan!"
+end
+
+-- ============================================================
+--  BUILD GUI
+-- ============================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name         = "SambungKataGui"
+screenGui.ResetOnSpawn = false
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+screenGui.Parent = playerGui
+
+-- â”€â”€ LOADING SCREEN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local loadingFrame = Instance.new("Frame")
+loadingFrame.Name            = "LoadingFrame"
+loadingFrame.Size            = UDim2.new(1, 0, 1, 0)
+loadingFrame.Position        = UDim2.new(0, 0, 0, 0)
+loadingFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 20)
+loadingFrame.BorderSizePixel = 0
+loadingFrame.ZIndex          = 100
+loadingFrame.Parent          = screenGui
+
+local hubLabel = Instance.new("TextLabel")
+hubLabel.Size               = UDim2.new(1, 0, 0, 60)
+hubLabel.Position           = UDim2.new(0, 0, 0.42, 0)
+hubLabel.BackgroundTransparency = 1
+hubLabel.Text               = "GHERIL HUB"
+hubLabel.Font               = Enum.Font.GothamBold
+hubLabel.TextSize            = 42
+hubLabel.TextColor3          = Color3.fromRGB(255, 220, 80)
+hubLabel.ZIndex              = 101
+hubLabel.Parent              = loadingFrame
+
+local madeByLabel = Instance.new("TextLabel")
+madeByLabel.Size               = UDim2.new(1, 0, 0, 30)
+madeByLabel.Position           = UDim2.new(0, 0, 0.55, 0)
+madeByLabel.BackgroundTransparency = 1
+madeByLabel.Text               = "made by gheril.xyz"
+madeByLabel.Font               = Enum.Font.Gotham
+madeByLabel.TextSize            = 18
+madeByLabel.TextColor3          = Color3.fromRGB(180, 180, 200)
+madeByLabel.ZIndex              = 101
+madeByLabel.Parent              = loadingFrame
+
+-- Fade-out loading setelah 2.5 detik
+task.delay(2.5, function()
+    TweenService:Create(loadingFrame, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+    TweenService:Create(hubLabel,     TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+    TweenService:Create(madeByLabel,  TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+    task.delay(0.6, function()
+        loadingFrame:Destroy()
+    end)
+end)
+
+-- â”€â”€ PANEL UTAMA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local panel = Instance.new("Frame")
+panel.Name              = "MainPanel"
+panel.Size              = UDim2.new(0, 240, 0, 420)
+panel.Position          = UDim2.new(1, -255, 0.5, -210)
+panel.BackgroundColor3  = Color3.fromRGB(20, 22, 35)
+panel.BorderSizePixel   = 0
+panel.Parent            = screenGui
+
+-- Rounded corners
+local panelCorner = Instance.new("UICorner")
+panelCorner.CornerRadius = UDim.new(0, 10)
+panelCorner.Parent = panel
+
+-- Stroke / border
+local panelStroke = Instance.new("UIStroke")
+panelStroke.Color     = Color3.fromRGB(255, 220, 80)
+panelStroke.Thickness = 1.5
+panelStroke.Parent    = panel
+
+-- â”€â”€ JUDUL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Name                 = "Title"
+titleLabel.Size                 = UDim2.new(1, 0, 0, 38)
+titleLabel.Position             = UDim2.new(0, 0, 0, 0)
+titleLabel.BackgroundColor3     = Color3.fromRGB(255, 220, 80)
+titleLabel.BorderSizePixel      = 0
+titleLabel.Text                 = "ðŸ”¤  Sambung Kata"
+titleLabel.Font                 = Enum.Font.GothamBold
+titleLabel.TextSize             = 16
+titleLabel.TextColor3           = Color3.fromRGB(10, 10, 20)
+titleLabel.Parent               = panel
+
+local titleCorner = Instance.new("UICorner")
+titleCorner.CornerRadius = UDim.new(0, 10)
+titleCorner.Parent = titleLabel
+
+-- patch bawah judul (hilangkan rounded bottom)
+local titlePatch = Instance.new("Frame")
+titlePatch.Size                = UDim2.new(1, 0, 0, 10)
+titlePatch.Position            = UDim2.new(0, 0, 1, -10)
+titlePatch.BackgroundColor3    = Color3.fromRGB(255, 220, 80)
+titlePatch.BorderSizePixel     = 0
+titlePatch.Parent              = titleLabel
+
+-- â”€â”€ LABEL AWALAN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local awalanLabel = Instance.new("TextLabel")
+awalanLabel.Name                = "AwalanLabel"
+awalanLabel.Size                = UDim2.new(1, -20, 0, 28)
+awalanLabel.Position            = UDim2.new(0, 10, 0, 48)
+awalanLabel.BackgroundTransparency = 1
+awalanLabel.Text                = "Awalan: a"
+awalanLabel.Font                = Enum.Font.GothamBold
+awalanLabel.TextSize            = 15
+awalanLabel.TextColor3          = Color3.fromRGB(255, 220, 80)
+awalanLabel.TextXAlignment      = Enum.TextXAlignment.Left
+awalanLabel.Parent              = panel
+
+-- â”€â”€ KATA TERAKHIR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local lastWordLabel = Instance.new("TextLabel")
+lastWordLabel.Name               = "LastWordLabel"
+lastWordLabel.Size               = UDim2.new(1, -20, 0, 22)
+lastWordLabel.Position           = UDim2.new(0, 10, 0, 74)
+lastWordLabel.BackgroundTransparency = 1
+lastWordLabel.Text               = "Kata terakhir: ayam"
+lastWordLabel.Font               = Enum.Font.Gotham
+lastWordLabel.TextSize           = 12
+lastWordLabel.TextColor3         = Color3.fromRGB(150, 155, 180)
+lastWordLabel.TextXAlignment     = Enum.TextXAlignment.Left
+lastWordLabel.Parent             = panel
+
+-- â”€â”€ INPUT KATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local inputBox = Instance.new("TextBox")
+inputBox.Name                   = "InputBox"
+inputBox.Size                   = UDim2.new(1, -20, 0, 32)
+inputBox.Position               = UDim2.new(0, 10, 0, 106)
+inputBox.BackgroundColor3       = Color3.fromRGB(35, 38, 55)
+inputBox.BorderSizePixel        = 0
+inputBox.Text                   = ""
+inputBox.PlaceholderText        = "Ketik kata di sini..."
+inputBox.Font                   = Enum.Font.Gotham
+inputBox.TextSize               = 13
+inputBox.TextColor3             = Color3.fromRGB(220, 220, 240)
+inputBox.PlaceholderColor3      = Color3.fromRGB(90, 95, 120)
+inputBox.ClearTextOnFocus       = false
+inputBox.Parent                 = panel
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 6)
+inputCorner.Parent = inputBox
+
+-- â”€â”€ TOMBOL TAMBAH â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local addButton = Instance.new("TextButton")
+addButton.Name                  = "AddButton"
+addButton.Size                  = UDim2.new(1, -20, 0, 32)
+addButton.Position              = UDim2.new(0, 10, 0, 146)
+addButton.BackgroundColor3      = Color3.fromRGB(255, 220, 80)
+addButton.BorderSizePixel       = 0
+addButton.Text                  = "Tambah"
+addButton.Font                  = Enum.Font.GothamBold
+addButton.TextSize              = 14
+addButton.TextColor3            = Color3.fromRGB(10, 10, 20)
+addButton.AutoButtonColor       = false
+addButton.Parent                = panel
+
+local addCorner = Instance.new("UICorner")
+addCorner.CornerRadius = UDim.new(0, 6)
+addCorner.Parent = addButton
+
+-- â”€â”€ STATUS LABEL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Name                = "StatusLabel"
+statusLabel.Size                = UDim2.new(1, -20, 0, 18)
+statusLabel.Position            = UDim2.new(0, 10, 0, 184)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text                = ""
+statusLabel.Font                = Enum.Font.Gotham
+statusLabel.TextSize            = 11
+statusLabel.TextColor3          = Color3.fromRGB(100, 220, 140)
+statusLabel.TextXAlignment      = Enum.TextXAlignment.Left
+statusLabel.Parent              = panel
+
+-- â”€â”€ DIVIDER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local divider = Instance.new("Frame")
+divider.Size                   = UDim2.new(1, -20, 0, 1)
+divider.Position               = UDim2.new(0, 10, 0, 207)
+divider.BackgroundColor3       = Color3.fromRGB(60, 65, 90)
+divider.BorderSizePixel        = 0
+divider.Parent                 = panel
+
+-- â”€â”€ LABEL DAFTAR KATA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local listTitle = Instance.new("TextLabel")
+listTitle.Name                  = "ListTitle"
+listTitle.Size                  = UDim2.new(1, -20, 0, 20)
+listTitle.Position              = UDim2.new(0, 10, 0, 214)
+listTitle.BackgroundTransparency = 1
+listTitle.Text                  = "Daftar Kata:"
+listTitle.Font                  = Enum.Font.GothamBold
+listTitle.TextSize              = 12
+listTitle.TextColor3            = Color3.fromRGB(180, 185, 210)
+listTitle.TextXAlignment        = Enum.TextXAlignment.Left
+listTitle.Parent                = panel
+
+-- â”€â”€ SCROLLING FRAME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+local scrollFrame = Instance.new("ScrollingFrame")
+scrollFrame.Name                = "WordList"
+scrollFrame.Size                = UDim2.new(1, -20, 0, 175)
+scrollFrame.Position            = UDim2.new(0, 10, 0, 236)
+scrollFrame.BackgroundColor3    = Color3.fromRGB(14, 16, 26)
+scrollFrame.BorderSizePixel     = 0
+scrollFrame.ScrollBarThickness  = 4
+scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 220, 80)
+scrollFrame.CanvasSize          = UDim2.new(0, 0, 0, 0)
+scrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+scrollFrame.Parent              = panel
+
+local scrollCorner = Instance.new("UICorner")
+scrollCorner.CornerRadius = UDim.new(0, 6)
+scrollCorner.Parent = scrollFrame
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.SortOrder   = Enum.SortOrder.LayoutOrder
+listLayout.Padding     = UDim.new(0, 2)
+listLayout.Parent      = scrollFrame
+
+local listPadding = Instance.new("UIPadding")
+listPadding.PaddingTop    = UDim.new(0, 4)
+listPadding.PaddingLeft   = UDim.new(0, 4)
+listPadding.PaddingRight  = UDim.new(0, 4)
+listPadding.PaddingBottom = UDim.new(0, 4)
+listPadding.Parent        = scrollFrame
+
+-- ============================================================
+--  UPDATE UI
+-- ============================================================
+local function updateUI()
+    local prefix = getLastLetter(lastWord)
+
+    -- Update labels
+    awalanLabel.Text   = "Awalan: " .. (prefix ~= "" and prefix or "-")
+    lastWordLabel.Text = "Kata terakhir: " .. lastWord
+
+    -- Bersihkan daftar lama
+    for _, child in ipairs(scrollFrame:GetChildren()) do
+        if child:IsA("TextLabel") then
+            child:Destroy()
+        end
+    end
+
+    -- Isi daftar kata baru
+    local words = getWordsByPrefix(prefix)
+    for i, word in ipairs(words) do
+        local item = Instance.new("TextLabel")
+        item.Name                = "Word_" .. i
+        item.Size                = UDim2.new(1, 0, 0, 24)
+        item.BackgroundTransparency = 1
+        item.Text                = word
+        item.Font                = Enum.Font.Gotham
+        item.TextSize            = 13
+        item.TextColor3          = Color3.fromRGB(210, 215, 240)
+        item.TextXAlignment      = Enum.TextXAlignment.Left
+        item.LayoutOrder         = i
+        item.Parent              = scrollFrame
+    end
+
+    -- Tampilkan pesan kosong jika tidak ada kata
+    if #words == 0 then
+        local emptyLabel = Instance.new("TextLabel")
+        emptyLabel.Name                = "EmptyLabel"
+        emptyLabel.Size                = UDim2.new(1, 0, 0, 24)
+        emptyLabel.BackgroundTransparency = 1
+        emptyLabel.Text                = "(tidak ada kata)"
+        emptyLabel.Font                = Enum.Font.Gotham
+        emptyLabel.TextSize            = 12
+        emptyLabel.TextColor3          = Color3.fromRGB(100, 105, 130)
+        emptyLabel.TextXAlignment      = Enum.TextXAlignment.Left
+        emptyLabel.Parent              = scrollFrame
+    end
+end
+
+-- ============================================================
+--  TOMBOL TAMBAH - LOGIC
+-- ============================================================
+
+-- Hover effect
+addButton.MouseEnter:Connect(function()
+    TweenService:Create(addButton, TweenInfo.new(0.15), {
+        BackgroundColor3 = Color3.fromRGB(255, 235, 120)
+    }):Play()
+end)
+addButton.MouseLeave:Connect(function()
+    TweenService:Create(addButton, TweenInfo.new(0.15), {
+        BackgroundColor3 = Color3.fromRGB(255, 220, 80)
+    }):Play()
+end)
+
+local function showStatus(msg, isError)
+    statusLabel.Text       = msg
+    statusLabel.TextColor3 = isError
+        and Color3.fromRGB(255, 100, 100)
+        or  Color3.fromRGB(100, 220, 140)
+    task.delay(2.5, function()
+        statusLabel.Text = ""
+    end)
+end
+
+addButton.Activated:Connect(function()
+    local inputText = inputBox.Text
+    local success, msg = addWord(inputText)
+
+    if success then
+        -- Klik efek
+        TweenService:Create(addButton, TweenInfo.new(0.08), {
+            BackgroundColor3 = Color3.fromRGB(180, 255, 140)
+        }):Play()
+        task.delay(0.15, function()
+            TweenService:Create(addButton, TweenInfo.new(0.15), {
+                BackgroundColor3 = Color3.fromRGB(255, 220, 80)
+            }):Play()
+        end)
+
+        inputBox.Text = ""
+        updateUI()
+    end
+
+    showStatus(msg, not success)
+end)
+
+-- ============================================================
+--  CONTOH: ubah lastWord untuk test (hapus/ubah sesuai kebutuhan)
+-- ============================================================
+-- Untuk simulasi perubahan lastWord secara manual, kamu bisa
+-- set dari script lain: _G.setLastWord("mangga")
+_G.setLastWord = function(word)
+    lastWord = string.lower(word)
+    updateUI()
+end
+
+-- ============================================================
+--  INISIALISASI
+-- ============================================================
+updateUI()
+
+-- ============================================================
+--  END OF SCRIPT
+-- ============================================================
