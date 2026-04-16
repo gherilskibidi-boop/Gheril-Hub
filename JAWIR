@@ -1,0 +1,199 @@
+--// GHERIL HUB PERFECT
+--// Made by gheril.xyz
+
+local TweenService = game:GetService("TweenService")
+local UIS = game:GetService("UserInputService")
+
+local ScreenGui = Instance.new("ScreenGui", game.CoreGui)
+
+-- ======================
+-- OPENING
+-- ======================
+local Opening = Instance.new("Frame", ScreenGui)
+Opening.Size = UDim2.new(1,0,1,0)
+Opening.BackgroundColor3 = Color3.fromRGB(10,10,10)
+
+local Title = Instance.new("TextLabel", Opening)
+Title.Size = UDim2.new(1,0,0,100)
+Title.Position = UDim2.new(0,0,0.4,0)
+Title.Text = "GHERIL HUB"
+Title.TextScaled = true
+Title.TextColor3 = Color3.fromRGB(0,255,255)
+Title.BackgroundTransparency = 1
+Title.TextTransparency = 1
+
+local Sub = Instance.new("TextLabel", Opening)
+Sub.Size = UDim2.new(1,0,0,40)
+Sub.Position = UDim2.new(0,0,0.5,0)
+Sub.Text = "made by gheril.xyz"
+Sub.TextColor3 = Color3.fromRGB(150,150,150)
+Sub.BackgroundTransparency = 1
+Sub.TextTransparency = 1
+
+local BarBG = Instance.new("Frame", Opening)
+BarBG.Size = UDim2.new(0.4,0,0,6)
+BarBG.Position = UDim2.new(0.3,0,0.65,0)
+BarBG.BackgroundColor3 = Color3.fromRGB(40,40,40)
+BarBG.BorderSizePixel = 0
+
+local Bar = Instance.new("Frame", BarBG)
+Bar.Size = UDim2.new(0,0,1,0)
+Bar.BackgroundColor3 = Color3.fromRGB(0,255,255)
+Bar.BorderSizePixel = 0
+
+-- Fade in
+TweenService:Create(Title, TweenInfo.new(0.8), {TextTransparency = 0}):Play()
+TweenService:Create(Sub, TweenInfo.new(0.8), {TextTransparency = 0}):Play()
+
+-- Loading bar
+local tween = TweenService:Create(
+    Bar,
+    TweenInfo.new(2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+    {Size = UDim2.new(1,0,1,0)}
+)
+tween:Play()
+tween.Completed:Wait()
+
+task.wait(0.3)
+
+-- Fade out
+TweenService:Create(Opening, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+for _,v in pairs(Opening:GetDescendants()) do
+    if v:IsA("TextLabel") then
+        TweenService:Create(v, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+    end
+end
+
+task.wait(0.5)
+Opening:Destroy()
+
+-- ======================
+-- MAIN UI
+-- ======================
+local Main = Instance.new("Frame", ScreenGui)
+Main.Size = UDim2.new(0,380,0,300)
+Main.Position = UDim2.new(0.5,-190,1,0)
+Main.BackgroundColor3 = Color3.fromRGB(25,25,25)
+
+Instance.new("UICorner", Main)
+
+-- Animasi masuk dari bawah
+TweenService:Create(Main, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+    Position = UDim2.new(0.5,-190,0.5,-150)
+}):Play()
+
+-- HEADER
+local Header = Instance.new("TextLabel", Main)
+Header.Size = UDim2.new(1,0,0,40)
+Header.Text = "GHERIL HUB"
+Header.TextColor3 = Color3.fromRGB(0,200,255)
+Header.BackgroundTransparency = 1
+
+-- DRAGGABLE
+local dragging, dragInput, dragStart, startPos
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+    end
+end)
+
+Header.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+-- DISPLAY HURUF
+local HurufLabel = Instance.new("TextLabel", Main)
+HurufLabel.Position = UDim2.new(0.1,0,0.2,0)
+HurufLabel.Size = UDim2.new(0.8,0,0,30)
+HurufLabel.Text = "Huruf: -"
+HurufLabel.TextColor3 = Color3.new(1,1,1)
+HurufLabel.BackgroundTransparency = 1
+
+-- OUTPUT
+local Output = Instance.new("TextLabel", Main)
+Output.Position = UDim2.new(0.1,0,0.35,0)
+Output.Size = UDim2.new(0.8,0,0,80)
+Output.TextWrapped = true
+Output.Text = "-"
+Output.TextColor3 = Color3.fromRGB(200,200,200)
+Output.BackgroundTransparency = 1
+
+-- INPUT TAMBAH
+local HurufBox = Instance.new("TextBox", Main)
+HurufBox.Position = UDim2.new(0.1,0,0.65,0)
+HurufBox.Size = UDim2.new(0.35,0,0,30)
+HurufBox.PlaceholderText = "Huruf"
+
+local KataBox = Instance.new("TextBox", Main)
+KataBox.Position = UDim2.new(0.55,0,0.65,0)
+KataBox.Size = UDim2.new(0.35,0,0,30)
+KataBox.PlaceholderText = "Kata"
+
+local AddBtn = Instance.new("TextButton", Main)
+AddBtn.Position = UDim2.new(0.1,0,0.8,0)
+AddBtn.Size = UDim2.new(0.8,0,0,30)
+AddBtn.Text = "Tambah Kata"
+AddBtn.BackgroundColor3 = Color3.fromRGB(0,200,255)
+
+Instance.new("UICorner", AddBtn)
+
+-- DATABASE
+local kataDB = {
+    a = {"ayam","anjing","apel"},
+    b = {"bola","buku","batu"}
+}
+
+-- REFRESH FUNCTION
+local function updateOutput(huruf)
+    if kataDB[huruf] then
+        Output.Text = table.concat(kataDB[huruf], ", ")
+    else
+        Output.Text = "Tidak ada kata"
+    end
+end
+
+-- TAMBAH KATA
+AddBtn.MouseButton1Click:Connect(function()
+    local h = string.lower(HurufBox.Text)
+    local k = string.lower(KataBox.Text)
+
+    if h ~= "" and k ~= "" then
+        kataDB[h] = kataDB[h] or {}
+
+        for _,v in pairs(kataDB[h]) do
+            if v == k then return end
+        end
+
+        table.insert(kataDB[h], k)
+        KataBox.Text = ""
+
+        updateOutput(h)
+    end
+end)
+
+-- AUTO DETECT
+local sourceText = game.Workspace:WaitForChild("HurufLabel")
+
+while true do
+    local huruf = string.lower(sourceText.Text)
+    HurufLabel.Text = "Huruf: "..huruf
+    updateOutput(huruf)
+    task.wait(0.3)
+end
