@@ -1,0 +1,79 @@
+--[[
+    Lab cvAI4 Aktif 👾👑
+    Project: Medical & Academic Word Solver (Gheril Hub Edition)
+    Features: Auto-Detect Prefix, Admin Panel, Dynamic Database
+--]]
+
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("MED-SOLVER PRO 👾", "GrapeTheme")
+
+-- Initial Database (Kedokteran & Farmasi)
+local WordDatabase = {
+    ["Imuno"] = "histokimia, logi, terapi, supresan",
+    ["Farma"] = "kokinetik, kodinamik, kologi, seutika",
+    ["Hema"] = "tologi, poiesis, turia",
+    ["Anasto"] = "mosis",
+    ["Kardio"] = "logi, vaskular, miopati",
+    ["Neuro"] = "logi, transmiter, pati",
+    ["Gastro"] = "enterologi, itis, skopi"
+}
+
+-- Logic Core
+local function findCounter(input)
+    for prefix, suffix in pairs(WordDatabase) do
+        if string.sub(string.lower(input), 1, string.len(prefix)) == string.lower(prefix) then
+            return prefix, suffix
+        end
+    end
+    return nil
+end
+
+-- UI Setup
+local Main = Window:NewTab("Main Solver")
+local Admin = Window:NewTab("Admin Panel")
+local MainSection = Main:NewSection("Detection Log")
+
+-- Visual Code Sync: Auto Detect logic
+game:GetService("ReplicatedStorage").DefaultChatSystemChatEvents.OnMessageDoneFiltering.OnClientEvent:Connect(function(messageData)
+    local msg = messageData.Message
+    local prefix, counter = findCounter(msg)
+    
+    if prefix then
+        MainSection:NewLabel("⚠️ DETECTED: " .. prefix)
+        MainSection:NewLabel("✅ COUNTER: " .. counter)
+        -- Notification profesional
+        game.StarterGui:SetCore("SendNotification", {
+            Title = "Match Detected!",
+            Text = prefix .. " -> " .. counter,
+            Duration = 5
+        })
+    end
+end)
+
+-- Admin Features
+local AdminSection = Admin:NewSection("Database Management")
+
+AdminSection:NewTextBox("Prefix Baru", "Masukkan awalan kata", function(txt)
+    _G.NewPrefix = txt
+end)
+
+AdminSection:NewTextBox("Counter Baru", "Masukkan lanjutan kata", function(txt)
+    _G.NewCounter = txt
+end)
+
+AdminSection:NewButton("Tambahkan Ke Database", "Save to local memory", function()
+    if _G.NewPrefix and _G.NewCounter then
+        WordDatabase[_G.NewPrefix] = _G.NewCounter
+        Library:Notify("Success", "Kata berhasil ditambahkan ke Vault!")
+    end
+end)
+
+AdminSection:NewTextBox("Hapus Prefix", "Masukkan prefix yang ingin dihapus", function(txt)
+    WordDatabase[txt] = nil
+    Library:Notify("Deleted", txt .. " telah dihapus dari database.")
+end)
+
+MainSection:NewKeybind("Toggle UI", "Membuka/Menutup Menu", Enum.KeyCode.RightControl, function()
+	Library:ToggleUI()
+end)
+
